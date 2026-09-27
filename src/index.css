@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  /* Handwritten accent for taglines, used sparingly. */
+  --font-script: "Satisfy", cursive;
+
+  --color-cream-50: #fffaf3;
+  --color-cream-100: #f7efe4;
+  --color-cream-200: #efe0cc;
+  --color-cocoa-900: #2a180f;
+  --color-cocoa-800: #3b2418;
+  --color-cocoa-700: #5a3a28;
+  --color-cocoa-500: #8a6650;
+  --color-berry-600: #c9306a;
+  --color-berry-500: #e0457b;
+  --color-berry-100: #fbe1ea;
+  --color-pistachio-500: #8fb573;
+  --color-pistachio-100: #e8f1df;
+  --color-butter-400: #f5c95c;
+  --color-butter-100: #fdf1cf;
+
+  --animate-marquee: marquee 30s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pop: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.7) rotate(-8deg); }
+    to { opacity: 1; transform: scale(1) rotate(6deg); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-12px) rotate(2deg); }
+  }
+}
+
+@layer base {
+  /* The tilted marquee and hero badges poke past the edges; never allow sideways scroll. */
+  html, body { overflow-x: clip; }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-cream-50 font-sans text-cocoa-800 antialiased;
+  }
+  h1, h2, h3, h4 { @apply font-display; }
+}
+
+@utility container-x {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-berry-500 disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-berry-500 text-white shadow-lg shadow-berry-500/25 hover:bg-berry-600;
+}
+@utility btn-dark {
+  @apply btn bg-cocoa-800 text-cream-50 hover:bg-cocoa-900;
+}
+@utility btn-outline {
+  @apply btn border-2 border-cocoa-800 text-cocoa-800 hover:bg-cocoa-800 hover:text-cream-50;
+}
+@utility input {
+  @apply w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-sm outline-none transition
+    placeholder:text-cocoa-500/60 focus:border-berry-500 focus:ring-4 focus:ring-berry-100;
+}
+@utility eyebrow {
+  @apply text-xs font-bold uppercase tracking-[0.2em] text-berry-500;
+}
