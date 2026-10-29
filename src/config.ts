@@ -2,8 +2,8 @@
 export const site = {
   name: 'Crumb & Frost',
   tagline: 'Baked with love in Nairobi',
-  phone: '+254 700 000 000',
-  whatsapp: '254700000000', // international format, no "+" or spaces
+  phone: '+254 796 429 778',
+  whatsapp: '254796429778', // international format, no "+" or spaces
   email: 'hello@crumbandfrost.co.ke',
   address: 'Ngong Road, Nairobi, Kenya',
   hours: [
