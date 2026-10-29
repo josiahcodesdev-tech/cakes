@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, ChefHat, Clock, Headphones, Leaf, MapPin, RotateCcw, ShieldCheck, Star, Truck } from 'lucide-react'
+import { ArrowRight, ChefHat, Clock, Leaf, MapPin, Star, Truck } from 'lucide-react'
 import { categories, img, testimonials } from '../data/products'
 import ProductRow from '../components/ProductRow'
 import HeroCarousel from '../components/HeroCarousel'
@@ -7,11 +7,12 @@ import SectionHeading from '../components/SectionHeading'
 import { formatKES } from '../lib/format'
 import { site } from '../config'
 
+// Small round Unsplash photos (free licence) instead of icons.
 const perks = [
-  { Icon: Truck, title: 'Fast delivery', text: 'Ready cakes in 1–3 hrs' },
-  { Icon: ShieldCheck, title: 'Secure payment', text: 'M-Pesa, Visa & Mastercard' },
-  { Icon: RotateCcw, title: 'Money-back promise', text: 'If it arrives damaged' },
-  { Icon: Headphones, title: 'Real people, 7 days', text: 'Call or chat on WhatsApp' },
+  { photo: '1648394794449-5dbe63f6a8b5', alt: 'Delivery rider on a scooter', title: 'Fast delivery', text: 'Ready cakes in 1–3 hrs' },
+  { photo: '1509017174183-0b7e0278f1ec', alt: 'Paying with a phone', title: 'Secure payment', text: 'M-Pesa, Visa & Mastercard' },
+  { photo: '1626253934161-08cfea22e968', alt: 'Cake box', title: 'Money-back promise', text: 'If it arrives damaged' },
+  { photo: '1766066014237-00645c74e9c6', alt: 'Smiling support agent with a headset', title: 'Real people, 7 days', text: 'Call or chat on WhatsApp' },
 ]
 
 export default function Home() {
@@ -45,9 +46,9 @@ export default function Home() {
       {/* PERKS */}
       <section className="container-x mt-6">
         <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {perks.map(({ Icon, title, text }) => (
-            <li key={title} className="flex items-center gap-3 rounded-3xl bg-white p-4 ring-1 ring-cream-200">
-              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-cream-100 text-berry-500"><Icon className="size-5" /></span>
+          {perks.map(({ photo, alt, title, text }) => (
+            <li key={title} className="flex items-center gap-2.5 rounded-3xl bg-white p-3 ring-1 ring-cream-200 sm:gap-3 sm:p-4">
+              <img src={img(photo, 160)} alt={alt} loading="lazy" className="size-11 shrink-0 rounded-full object-cover ring-2 ring-cream-100 sm:size-14" />
               <span className="min-w-0 leading-tight">
                 <strong className="block text-sm">{title}</strong>
                 <span className="text-xs text-cocoa-500">{text}</span>
