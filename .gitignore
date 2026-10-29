@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Setup script with the real admin email filled in
+supabase/setup-ready.sql

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Cake } from 'lucide-react'
-import { byCategory, getCategory } from '../data/products'
+import { getCategory } from '../data/products'
+import { inCategory, useProducts } from '../data/catalog'
 import type { CategoryId } from '../types'
 import ProductCard from './ProductCard'
 
@@ -13,7 +14,7 @@ interface Props {
 /** A titled row of up to four products from one category, with a "View all" link. */
 export default function ProductRow({ category, title, tinted = false }: Props) {
   const cat = getCategory(category)!
-  const items = byCategory(category).slice(0, 4)
+  const items = inCategory(useProducts(), category).slice(0, 4)
 
   return (
     <section className={tinted ? 'bg-cream-100 py-16' : 'py-16'}>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { sizes } from '../data/products'
 import { whatsappLink } from '../lib/format'
+import { newOrderId, orderCode, ordersEnabled, saveOrder } from '../lib/orders'
 import { WhatsAppIcon } from '../components/BrandIcons'
 
 const occasions = ['Birthday', 'Wedding', 'Baby shower', 'Graduation', 'Anniversary', 'Corporate', 'Other']
@@ -15,8 +16,25 @@ export default function CustomOrder() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
+    const id = newOrderId()
+    // Saved for the admin page; not awaited so the WhatsApp window opens straight from the click.
+    void saveOrder(id, {
+      kind: 'custom',
+      customer_name: form.name,
+      phone: form.phone,
+      delivery_date: form.date,
+      notes: [
+        `Occasion: ${form.occasion}`,
+        `Size: ${form.size}`,
+        form.budget && `Budget: KES ${form.budget}`,
+        `Design idea: ${form.theme}`,
+        form.photos.trim() && `Reference pictures: ${form.photos.trim()}`,
+      ].filter(Boolean).join('\n'),
+      total: Number(form.budget.replace(/\D/g, '')) || 0,
+    })
     const message = [
       '🎂 *Custom cake request*',
+      ordersEnabled() && `Request #${orderCode(id)}`,
       `Name: ${form.name}`,
       `Phone: ${form.phone}`,
       `Occasion: ${form.occasion}`,

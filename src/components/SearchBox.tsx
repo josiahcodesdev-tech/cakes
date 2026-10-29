@@ -2,6 +2,7 @@ import { useId, useMemo, useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
 import { completion, correct, suggest } from '../lib/search'
+import { useProducts } from '../data/catalog'
 
 interface Props {
   value: string
@@ -26,9 +27,10 @@ export default function SearchBox({ value, onChange, placeholder, className = ''
   const [open, setOpen] = useState(false)
   const [highlight, setHighlight] = useState(-1)
 
-  const suggestions = useMemo(() => suggest(value), [value])
-  const ghost = useMemo(() => completion(value, suggestions), [value, suggestions])
-  const fix = useMemo(() => (value.trim().length >= 4 ? correct(value) : null), [value])
+  const products = useProducts()
+  const suggestions = useMemo(() => suggest(value, products), [value, products])
+  const ghost = useMemo(() => completion(value, suggestions, products), [value, suggestions, products])
+  const fix = useMemo(() => (value.trim().length >= 4 ? correct(value, products) : null), [value, products])
   const showList = open && value.trim() !== '' && (suggestions.length > 0 || !!fix)
 
   const update = (v: string) => {

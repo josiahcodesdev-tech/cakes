@@ -1,3 +1,6 @@
 {
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/cake/:slug", "destination": "/api/cake?slug=:slug" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }

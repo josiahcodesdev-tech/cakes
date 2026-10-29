@@ -72,12 +72,12 @@ type Seed = Omit<Product, 'id' | 'slug' | 'image' | 'rating' | 'readyIn'> & {
   readyIn?: string
 }
 
-const defaultReadyIn: Record<CategoryId, string> = {
+export const defaultReadyIn: Record<CategoryId, string> = {
   ready: '1–2 hrs', birthday: '1–3 hrs', anniversary: '2–3 hrs', kids: '3–4 hrs', cupcakes: '2–3 hrs', signature: '24 hrs',
   special: '24 hrs', corporate: '24 hrs', graduation: '3–4 hrs', baby: '24 hrs', flowers: '2–3 hrs', wedding: '2 weeks',
 }
 
-const slugify = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+export const slugify = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const seeds: Seed[] = [
   // Ready

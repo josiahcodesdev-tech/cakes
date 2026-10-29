@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
-import { categories, getCategory, products } from '../data/products'
+import { categories, getCategory } from '../data/products'
+import { useProducts } from '../data/catalog'
 import ProductCard from '../components/ProductCard'
 import SearchBox from '../components/SearchBox'
 import { correct, productScore } from '../lib/search'
@@ -15,6 +16,7 @@ export default function Shop() {
   const query = params.get('q') ?? ''
   const [sort, setSort] = useState<SortKey>('popular')
   const category = getCategory(active)
+  const products = useProducts()
 
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params)
@@ -40,8 +42,8 @@ export default function Shop() {
       if (sort === 'deals') return saving(b) - saving(a)
       return b.rating - a.rating
     }).map((x) => x.p)
-  }, [active, query, sort])
-  const fix = useMemo(() => correct(query), [query])
+  }, [products, active, query, sort])
+  const fix = useMemo(() => correct(query, products), [query, products])
 
   const chips = [{ id: 'all', name: 'All cakes' }, ...categories]
 

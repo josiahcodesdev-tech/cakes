@@ -1,22 +1,26 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, Clock, Minus, Plus, Share2, ShieldCheck, Star, Truck } from 'lucide-react'
-import { discountPercent, getCategory, getProduct, products, sizes } from '../data/products'
+import { discountPercent, getCategory, sizes } from '../data/products'
+import { findProduct, useProducts, useProductsLoaded } from '../data/catalog'
 import { useCart } from '../context/CartContext'
 import { cakeUrl, formatKES } from '../lib/format'
 import { WhatsAppIcon } from '../components/BrandIcons'
 import ProductCard from '../components/ProductCard'
 import NotFound from './NotFound'
+import type { Product } from '../types'
 
 export default function ProductPage() {
   const { slug = '' } = useParams()
-  const product = getProduct(slug)
+  const products = useProducts()
+  const loaded = useProductsLoaded()
+  const product = findProduct(products, slug)
+  if (!product && !loaded) return <div className="container-x py-32 text-center text-cocoa-500">Loading cake…</div>
   // Key by slug so option state resets when navigating between cakes.
-  return product ? <ProductDetail key={slug} slug={slug} /> : <NotFound />
+  return product ? <ProductDetail key={slug} product={product} products={products} /> : <NotFound />
 }
 
-function ProductDetail({ slug }: { slug: string }) {
-  const product = getProduct(slug)!
+function ProductDetail({ product, products }: { product: Product; products: Product[] }) {
   const navigate = useNavigate()
   const { addItem } = useCart()
   // Boxes, bundles and tiered showpieces come in one fixed size.

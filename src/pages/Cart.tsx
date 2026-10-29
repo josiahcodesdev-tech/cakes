@@ -1,24 +1,27 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
-import { deliveryZones, products } from '../data/products'
+import { deliveryZones } from '../data/products'
+import { useProducts } from '../data/catalog'
 import { cakeUrl, formatKES, whatsappLink } from '../lib/format'
-import type { CartItem } from '../types'
+import type { CartItem, Product } from '../types'
 import { WhatsAppIcon } from '../components/BrandIcons'
 import MpesaStatus from '../components/MpesaStatus'
 import { useMpesaPayment } from '../lib/mpesa'
+import { newOrderId, orderCode, ordersEnabled, saveOrder } from '../lib/orders'
 
 const FREE_DELIVERY_FROM = 8000
 const today = new Date().toISOString().split('T')[0]
 
-const itemLink = (i: CartItem) => {
-  const product = products.find((p) => p.id === i.productId)
+const itemLink = (i: CartItem, products: Product[]) => {
+  const product = products.find((p) => p.id === i.productId || p.name === i.name)
   return product ? cakeUrl(product.slug) : i.image
 }
 
 export default function Cart() {
   const { items, subtotal, updateQuantity, removeItem } = useCart()
+  const products = useProducts()
   const [zone, setZone] = useState(deliveryZones[0].area)
   const [form, setForm] = useState({ name: '', phone: '', date: today, address: '', notes: '' })
   const payment = useMpesaPayment()
@@ -31,20 +34,45 @@ export default function Cart() {
   const update = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  const checkout = (e: FormEvent<HTMLFormElement>) => {
+  // The order is saved once (on the first Pay or WhatsApp click) so it appears in the admin page.
+  const [orderId] = useState(newOrderId)
+  const saved = useRef<Promise<string | null> | null>(null)
+  const ensureSaved = () =>
+    (saved.current ??= saveOrder(orderId, {
+      kind: 'order',
+      customer_name: form.name,
+      phone: form.phone,
+      address: form.address,
+      delivery_date: form.date,
+      zone,
+      notes: form.notes || null,
+      items: items.map((i) => ({
+        name: i.name, quantity: i.quantity, size: i.size, flavour: i.flavour, message: i.message || undefined,
+        unitPrice: i.unitPrice, link: itemLink(i, products),
+      })),
+      subtotal,
+      delivery_fee: delivery,
+      total,
+    }))
+
+  const checkout = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     // The form has two submit buttons: pay by M-Pesa, or send the order on WhatsApp.
     if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'mpesa') {
-      payment.start({ phone: form.phone, amount: total, name: form.name })
+      const id = await ensureSaved()
+      payment.start({ phone: form.phone, amount: total, name: form.name, orderId: id ?? undefined })
       return
     }
+    // Not awaited: the WhatsApp window has to open straight from the click or browsers block it.
+    void ensureSaved()
     const lines = items.map(
       (i, n) =>
         // WhatsApp links carry text only, so each cake goes in as a link to its page (the first one shows a photo preview).
-        `${n + 1}. ${i.name} x${i.quantity}\n   ${i.size} · ${i.flavour}${i.message ? ` · "${i.message}"` : ''}\n   ${formatKES(i.unitPrice * i.quantity)}\n   🔗 ${itemLink(i)}`,
+        `${n + 1}. ${i.name} x${i.quantity}\n   ${i.size} · ${i.flavour}${i.message ? ` · "${i.message}"` : ''}\n   ${formatKES(i.unitPrice * i.quantity)}\n   🔗 ${itemLink(i, products)}`,
     )
     const message = [
       '🎂 *New cake order*',
+      ordersEnabled() && `Order #${orderCode(orderId)}`,
       '',
       ...lines,
       '',

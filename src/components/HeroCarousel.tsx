@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getProduct } from '../data/products'
+import { findProduct, useProducts } from '../data/catalog'
 import { formatKES } from '../lib/format'
 import type { Product } from '../types'
 
@@ -13,12 +13,15 @@ const featuredSlugs = [
   'rainbow-sprinkle-surprise',
   'garden-rose-three-tier',
 ]
-const slides = featuredSlugs.map(getProduct).filter((p): p is Product => Boolean(p))
 const INTERVAL_MS = 3500
 
 export default function HeroCarousel() {
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
+  const products = useProducts()
+  const featured = featuredSlugs.map((s) => findProduct(products, s)).filter((p): p is Product => Boolean(p))
+  // Featured cakes that were removed in the admin page fall back to the newest cakes.
+  const slides = featured.length ? featured : products.slice(0, 6)
 
   useEffect(() => {
     if (paused || slides.length < 2) return
@@ -26,9 +29,9 @@ export default function HeroCarousel() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const id = setInterval(() => setIndex((i) => (i + 1) % slides.length), INTERVAL_MS)
     return () => clearInterval(id)
-  }, [paused])
+  }, [paused, slides.length])
 
-  const current = slides[index]
+  const current = slides[index % slides.length]
   if (!current) return null
 
   return (

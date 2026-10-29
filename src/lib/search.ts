@@ -1,5 +1,5 @@
 import type { Product } from '../types'
-import { categories, getCategory, menuFlavours, products } from '../data/products'
+import { categories, getCategory, menuFlavours } from '../data/products'
 
 // Typo-tolerant search over the site's own words (cake names, categories, flavours),
 // so "weding cakse" still finds wedding cakes and "wedd" can be completed to "Wedding Cakes".
@@ -71,9 +71,16 @@ function score(terms: string[], words: string[], extra: string[] = []) {
 
 // ---- Suggestions for the search box ----
 
-const flavourList = [...new Set([...menuFlavours, ...products.flatMap((p) => p.flavours)])]
+type Entry = Suggestion & { words: string[]; extra: string[]; rank: number }
 
-const entries: (Suggestion & { words: string[]; extra: string[]; rank: number })[] = [
+// The search index is rebuilt only when the cake list changes.
+const indexes = new WeakMap<Product[], { entries: Entry[]; vocabulary: string[] }>()
+
+function indexFor(products: Product[]) {
+  const hit = indexes.get(products)
+  if (hit) return hit
+  const flavourList = [...new Set([...menuFlavours, ...products.flatMap((p) => p.flavours)])]
+  const entries: Entry[] = [
   ...categories.map((c) => ({
     label: c.name, kind: 'Category' as const, to: `/shop?category=${c.id}`, image: c.image,
     words: tokenize(c.name), extra: tokenize(c.id), rank: 0,
@@ -86,12 +93,17 @@ const entries: (Suggestion & { words: string[]; extra: string[]; rank: number })
     label: p.name, kind: 'Cake' as const, to: `/cake/${p.slug}`, image: p.image,
     words: tokenize(p.name), extra: tokenize(getCategory(p.category)?.name ?? ''), rank: 2,
   })),
-]
+  ]
+  const vocabulary = [...new Set(entries.flatMap((e) => [...e.words, ...e.extra]).concat([...stopwords]))]
+  const index = { entries, vocabulary }
+  indexes.set(products, index)
+  return index
+}
 
-export function suggest(query: string, limit = 7): Suggestion[] {
+export function suggest(query: string, products: Product[], limit = 7): Suggestion[] {
   const terms = searchTerms(query)
   if (!terms.length) return []
-  return entries
+  return indexFor(products).entries
     .map((e) => ({ e, s: score(terms, e.words, e.extra) }))
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s || a.e.rank - b.e.rank || a.e.label.length - b.e.label.length)
@@ -103,20 +115,19 @@ export function suggest(query: string, limit = 7): Suggestion[] {
  * The rest of the word(s) the user is probably typing, shown as grey text after the cursor:
  * "wedd" → "ing Cakes". Only offered when a suggestion starts with exactly what was typed.
  */
-export function completion(query: string, suggestions: Suggestion[]) {
+export function completion(query: string, suggestions: Suggestion[], products: Product[]) {
   if (!query.trim()) return ''
   const typed = query.toLowerCase()
   const hit = suggestions.find((s) => s.label.toLowerCase().startsWith(typed))
-    ?? entries.find((e) => e.label.toLowerCase().startsWith(typed))
+    ?? indexFor(products).entries.find((e) => e.label.toLowerCase().startsWith(typed))
   return hit ? hit.label.slice(query.length) : ''
 }
 
 // ---- Spelling correction ----
 
-const vocabulary = [...new Set(entries.flatMap((e) => [...e.words, ...e.extra]).concat([...stopwords]))]
-
 /** The query with misspelt words replaced by the closest site word, or null if nothing changed. */
-export function correct(query: string) {
+export function correct(query: string, products: Product[]) {
+  const { vocabulary } = indexFor(products)
   const terms = tokenize(query)
   let changed = false
   const fixed = terms.map((t) => {
