@@ -3,6 +3,9 @@ import { useSearchParams } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { categories, getCategory, products } from '../data/products'
 import ProductCard from '../components/ProductCard'
+import SearchBox from '../components/SearchBox'
+import { correct, productScore } from '../lib/search'
+import type { Product } from '../types'
 
 type SortKey = 'popular' | 'price-asc' | 'price-desc' | 'deals'
 
@@ -21,23 +24,24 @@ export default function Shop() {
   }
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const list = products.filter(
-      (p) =>
-        (active === 'all' || p.category === active) &&
-        (!q || [p.name, p.description, ...p.flavours].some((s) => s.toLowerCase().includes(q))),
-    )
-    const saving = (p: (typeof list)[number]) => (p.oldPrice ?? p.basePrice) - p.basePrice
-    // With a search term, cakes whose name matches come before flavour/description matches.
-    const nameHit = (p: (typeof list)[number]) => (q && p.name.toLowerCase().includes(q) ? 1 : 0)
-    return [...list].sort((a, b) => {
-      if (nameHit(a) !== nameHit(b)) return nameHit(b) - nameHit(a)
+    // Typo-tolerant: "weding cakse" still finds wedding cakes.
+    const scored = products
+      .filter((p) => active === 'all' || p.category === active)
+      .map((p) => ({ p, score: productScore(p, query) }))
+      .filter((x) => x.score > 0)
+    const saving = (p: Product) => (p.oldPrice ?? p.basePrice) - p.basePrice
+    // With a search term, better matches (e.g. by name) come before weaker ones.
+    return scored.sort((x, y) => {
+      if (x.score !== y.score) return y.score - x.score
+      const a = x.p
+      const b = y.p
       if (sort === 'price-asc') return a.basePrice - b.basePrice
       if (sort === 'price-desc') return b.basePrice - a.basePrice
       if (sort === 'deals') return saving(b) - saving(a)
       return b.rating - a.rating
-    })
+    }).map((x) => x.p)
   }, [active, query, sort])
+  const fix = useMemo(() => correct(query), [query])
 
   const chips = [{ id: 'all', name: 'All cakes' }, ...categories]
 
@@ -69,16 +73,23 @@ export default function Shop() {
         <p className="text-sm text-cocoa-500">
           {filtered.length} {filtered.length === 1 ? 'cake' : 'cakes'}
           {query && <> for “<strong className="text-cocoa-800">{query}</strong>”</>}
+          {fix && (
+            <>
+              {' · '}Did you mean{' '}
+              <button onClick={() => setParam('q', fix)} className="font-semibold text-berry-600 underline underline-offset-2">{fix}</button>?
+            </>
+          )}
         </p>
         <div className="flex gap-3">
           <label className="relative flex-1 sm:w-64">
             <span className="sr-only">Search cakes</span>
-            <Search className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-cocoa-500" />
-            <input
+            <Search className="absolute top-1/2 left-4 z-10 size-4 -translate-y-1/2 text-cocoa-500" />
+            <SearchBox
               value={query}
-              onChange={(e) => setParam('q', e.target.value)}
+              onChange={(v) => setParam('q', v)}
               placeholder="Search flavour or design…"
               className="input rounded-full! px-10!"
+              ghostClassName="border border-transparent pl-10"
             />
             {query && (
               <button onClick={() => setParam('q', '')} className="absolute top-1/2 right-3 -translate-y-1/2 p-1 text-cocoa-500" aria-label="Clear search">

@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext'
 import { site } from '../config'
 import { categories, menuFlavours } from '../data/products'
 import Logo from './Logo'
+import SearchBox from './SearchBox'
 
 const mainLinks = [
   { to: '/shop?category=ready', label: 'Ready Cakes' },
@@ -114,10 +115,11 @@ export default function Navbar() {
             <label className="flex flex-1 items-center gap-2 pl-3">
               <span className="sr-only">Search cakes</span>
               <Search className="size-4 shrink-0 text-cocoa-500" />
-              <input
+              <SearchBox
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={setQuery}
                 placeholder="Search by flavour, design, cartoon…"
+                wrapperClassName="flex-1"
                 className="w-full bg-transparent text-sm outline-none placeholder:text-cocoa-500/70"
               />
             </label>
@@ -201,7 +203,15 @@ export default function Navbar() {
         <div className="max-h-[calc(100vh-4.5rem)] overflow-y-auto border-t border-cream-200 bg-cream-50 lg:hidden">
           <div className="container-x space-y-5 py-4">
             <form onSubmit={submitSearch} className="flex gap-2 md:hidden" role="search">
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search cakes…" className="input rounded-full!" aria-label="Search cakes" />
+              <SearchBox
+                value={query}
+                onChange={setQuery}
+                placeholder="Search cakes…"
+                wrapperClassName="flex-1"
+                className="input rounded-full!"
+                ghostClassName="border border-transparent px-4"
+                aria-label="Search cakes"
+              />
               <button className="grid size-12 shrink-0 place-items-center rounded-full bg-berry-500 text-white" aria-label="Search"><Search className="size-5" /></button>
             </form>
             <div>
