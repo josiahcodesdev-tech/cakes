@@ -239,15 +239,23 @@ function Notes({ text }: { text: string }) {
     })
     .join('\n')
 
-  const details = <p className="whitespace-pre-line rounded-2xl bg-butter-100 p-3">{linkify(rest)}</p>
+  const details = <p className="min-w-0 flex-1 self-start whitespace-pre-line rounded-2xl bg-butter-100 p-3">{linkify(rest)}</p>
   if (!photos.length) return details
 
+  // Small thumbnails beside the details; click one to see it full size.
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <div className={`grid gap-2 ${photos.length > 1 ? 'grid-cols-2' : ''}`}>
+    <div className="flex items-start gap-3">
+      <div className={`grid shrink-0 gap-1.5 ${photos.length > 1 ? 'grid-cols-2' : ''}`}>
         {photos.map((src, n) => (
-          <a key={src} href={src} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-2xl bg-cream-100 ring-1 ring-cream-200" title="Open full size">
-            <img src={src} alt={`Client photo ${n + 1}`} loading="lazy" className="aspect-square size-full object-cover transition hover:scale-105" />
+          <a
+            key={src}
+            href={src}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`block overflow-hidden rounded-xl bg-cream-100 ring-1 ring-cream-200 ${photos.length > 1 ? 'size-14' : 'size-24'}`}
+            title="Open full size"
+          >
+            <img src={src} alt={`Client photo ${n + 1}`} loading="lazy" className="size-full object-cover transition hover:scale-105" />
           </a>
         ))}
       </div>
