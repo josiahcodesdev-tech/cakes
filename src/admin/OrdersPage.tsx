@@ -97,7 +97,7 @@ export default function OrdersPage({ token }: { token: string }) {
 }
 
 function OrderCard({ order: o, token, onUpdate, onReload }: { order: Order; token: string; onUpdate: (c: Partial<Order>) => void; onReload: () => void }) {
-  const [open, setOpen] = useState(o.status === 'new')
+  const [open, setOpen] = useState(false)
   const payment = useMpesaPayment()
   const [checking, setChecking] = useState(false)
   const balance = Math.max(0, o.total - o.amount_paid)
