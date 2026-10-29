@@ -2,14 +2,20 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
-import { deliveryZones } from '../data/products'
-import { formatKES, whatsappLink } from '../lib/format'
+import { deliveryZones, products } from '../data/products'
+import { cakeUrl, formatKES, whatsappLink } from '../lib/format'
+import type { CartItem } from '../types'
 import { WhatsAppIcon } from '../components/BrandIcons'
 import MpesaStatus from '../components/MpesaStatus'
 import { useMpesaPayment } from '../lib/mpesa'
 
 const FREE_DELIVERY_FROM = 8000
 const today = new Date().toISOString().split('T')[0]
+
+const itemLink = (i: CartItem) => {
+  const product = products.find((p) => p.id === i.productId)
+  return product ? cakeUrl(product.slug) : i.image
+}
 
 export default function Cart() {
   const { items, subtotal, updateQuantity, removeItem } = useCart()
@@ -34,7 +40,8 @@ export default function Cart() {
     }
     const lines = items.map(
       (i, n) =>
-        `${n + 1}. ${i.name} x${i.quantity}\n   ${i.size} · ${i.flavour}${i.message ? ` · "${i.message}"` : ''}\n   ${formatKES(i.unitPrice * i.quantity)}`,
+        // WhatsApp links carry text only, so each cake goes in as a link to its page (the first one shows a photo preview).
+        `${n + 1}. ${i.name} x${i.quantity}\n   ${i.size} · ${i.flavour}${i.message ? ` · "${i.message}"` : ''}\n   ${formatKES(i.unitPrice * i.quantity)}\n   🔗 ${itemLink(i)}`,
     )
     const message = [
       '🎂 *New cake order*',

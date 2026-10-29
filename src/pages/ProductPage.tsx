@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, Clock, Minus, Plus, ShieldCheck, Star, Truck } from 'lucide-react'
+import { ArrowLeft, Check, Clock, Minus, Plus, Share2, ShieldCheck, Star, Truck } from 'lucide-react'
 import { discountPercent, getCategory, getProduct, products, sizes } from '../data/products'
 import { useCart } from '../context/CartContext'
-import { formatKES } from '../lib/format'
+import { cakeUrl, formatKES } from '../lib/format'
+import { WhatsAppIcon } from '../components/BrandIcons'
 import ProductCard from '../components/ProductCard'
 import NotFound from './NotFound'
 
@@ -31,6 +32,19 @@ function ProductDetail({ slug }: { slug: string }) {
   const unitPrice = product.basePrice + extra
   const off = discountPercent(product)
   const related = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4)
+
+  // A direct link to this cake; shared links show the cake's photo, name and price as a preview.
+  const link = cakeUrl(product.slug)
+  const [copied, setCopied] = useState(false)
+  const share = async () => {
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      window.prompt('Copy this link:', link)
+    }
+  }
 
   const add = (goToCart: boolean) => {
     addItem({
@@ -150,6 +164,21 @@ function ProductDetail({ slug }: { slug: string }) {
                 Buy now
               </button>
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              // No number in the link, so WhatsApp asks which chat to share it to.
+              href={`https://wa.me/?text=${encodeURIComponent(`${product.name} – ${formatKES(product.basePrice)}\n${link}`)}`}
+              target="_blank"
+              rel="noopener"
+              className="btn bg-[#25D366]/10 px-4! py-2! text-[#128C4B] hover:bg-[#25D366]/20"
+            >
+              <WhatsAppIcon /> Share on WhatsApp
+            </a>
+            <button onClick={share} className="btn bg-cream-100 px-4! py-2! hover:bg-cream-200">
+              {copied ? <><Check className="size-4" /> Link copied</> : <><Share2 className="size-4" /> Copy link</>}
+            </button>
           </div>
 
           <ul className="mt-8 grid gap-3 rounded-3xl bg-cream-100 p-5 text-sm sm:grid-cols-2">
