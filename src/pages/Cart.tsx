@@ -5,6 +5,8 @@ import { useCart } from '../context/CartContext'
 import { deliveryZones } from '../data/products'
 import { formatKES, whatsappLink } from '../lib/format'
 import { WhatsAppIcon } from '../components/BrandIcons'
+import MpesaStatus from '../components/MpesaStatus'
+import { useMpesaPayment } from '../lib/mpesa'
 
 const FREE_DELIVERY_FROM = 8000
 const today = new Date().toISOString().split('T')[0]
@@ -13,6 +15,8 @@ export default function Cart() {
   const { items, subtotal, updateQuantity, removeItem } = useCart()
   const [zone, setZone] = useState(deliveryZones[0].area)
   const [form, setForm] = useState({ name: '', phone: '', date: today, address: '', notes: '' })
+  const payment = useMpesaPayment()
+  const paying = payment.state === 'sending' || payment.state === 'waiting'
 
   const zoneFee = deliveryZones.find((z) => z.area === zone)?.fee ?? 0
   const delivery = subtotal >= FREE_DELIVERY_FROM ? 0 : zoneFee
@@ -21,8 +25,13 @@ export default function Cart() {
   const update = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  const checkout = (e: FormEvent) => {
+  const checkout = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    // The form has two submit buttons: pay by M-Pesa, or send the order on WhatsApp.
+    if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'mpesa') {
+      payment.start({ phone: form.phone, amount: total, name: form.name })
+      return
+    }
     const lines = items.map(
       (i, n) =>
         `${n + 1}. ${i.name} x${i.quantity}\n   ${i.size} · ${i.flavour}${i.message ? ` · "${i.message}"` : ''}\n   ${formatKES(i.unitPrice * i.quantity)}`,
@@ -35,6 +44,7 @@ export default function Cart() {
       `Subtotal: ${formatKES(subtotal)}`,
       `Delivery (${zone}): ${delivery ? formatKES(delivery) : 'FREE'}`,
       `*Total: ${formatKES(total)}*`,
+      payment.state === 'paid' && `✅ *PAID via M-Pesa*${payment.mpesaCode ? ` (code ${payment.mpesaCode})` : ''}`,
       '',
       `Name: ${form.name}`,
       `Phone: ${form.phone}`,
@@ -42,7 +52,7 @@ export default function Cart() {
       `Address: ${form.address}`,
       form.notes && `Notes: ${form.notes}`,
     ]
-      .filter((l) => l !== '')
+      .filter((l) => typeof l === 'string' && l !== '')
       .join('\n')
     window.open(whatsappLink(message), '_blank', 'noopener')
   }
@@ -129,10 +139,21 @@ export default function Cart() {
             </div>
           </dl>
 
-          <button type="submit" className="btn w-full bg-[#25D366] text-white hover:bg-[#1fb857]">
-            <WhatsAppIcon /> Send order via WhatsApp
+          {payment.state !== 'paid' && (
+            <button type="submit" value="mpesa" disabled={paying} className="btn-primary w-full">
+              {paying ? 'Waiting for M-Pesa…' : <>Pay {formatKES(total)} with M-Pesa</>}
+            </button>
+          )}
+          <MpesaStatus state={payment.state} error={payment.error} mpesaCode={payment.mpesaCode} phone={form.phone} />
+
+          <button type="submit" value="whatsapp" className="btn w-full bg-[#25D366] text-white hover:bg-[#1fb857]">
+            <WhatsAppIcon /> {payment.state === 'paid' ? 'Send paid order via WhatsApp' : 'Send order via WhatsApp'}
           </button>
-          <p className="text-center text-xs text-cocoa-500">We’ll confirm your order and send M-Pesa payment details.</p>
+          <p className="text-center text-xs text-cocoa-500">
+            {payment.state === 'paid'
+              ? 'Send us your order so we can start baking.'
+              : 'Pay now with an M-Pesa prompt on your phone, or send the order and pay after we confirm.'}
+          </p>
         </form>
       </div>
     </div>
