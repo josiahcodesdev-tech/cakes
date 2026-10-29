@@ -36,7 +36,7 @@ export default function HeroCarousel() {
 
   return (
     <div
-      className="relative mx-auto w-full max-w-sm"
+      className="relative mx-auto w-full max-w-sm md:short:max-w-[min(20rem,calc(100svh-17.5rem))]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -91,7 +91,7 @@ export default function HeroCarousel() {
         )}
       </Link>
 
-      <div className="mt-5 flex justify-center gap-2">
+      <div className="mt-5 flex justify-center gap-2 short:mt-3">
         {slides.map((p, i) => (
           <button
             key={p.id}

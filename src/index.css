@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Short windows (e.g. laptops with display scaling): used to keep the home hero's buttons in view. */
+@custom-variant short (@media (max-height: 800px));
+@custom-variant shorter (@media (max-height: 620px));
+
 @theme {
   --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;

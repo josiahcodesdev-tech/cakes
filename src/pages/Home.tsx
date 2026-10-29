@@ -21,22 +21,16 @@ export default function Home() {
       <section className="container-x pt-6">
         <div className="relative overflow-hidden rounded-[2.5rem] bg-berry-100">
           <div className="absolute -right-20 -bottom-24 size-96 rounded-full bg-butter-100 blur-3xl" aria-hidden="true" />
-          <div className="relative grid items-center gap-8 p-7 sm:p-12 md:grid-cols-[1.1fr_1fr]">
+          <div className="relative grid items-center gap-8 p-7 sm:p-12 md:grid-cols-[1.1fr_1fr] short:gap-6 short:p-6 short:sm:p-8 short:md:grid-cols-[1.2fr_1fr] short:lg:px-12 shorter:sm:py-5">
             <div>
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold shadow-sm">
-                <span className="flex">
-                  {[0, 1, 2, 3, 4].map((i) => <Star key={i} className="size-3.5 fill-butter-400 text-butter-400" />)}
-                </span>
-                4.9 from 1,200+ Google reviews
-              </p>
-              <p className="font-script text-2xl text-cocoa-700 sm:text-3xl">Fresh cakes in 30+ flavours</p>
-              <h1 className="mt-2 text-4xl leading-[1.1] font-bold tracking-tight sm:text-5xl xl:text-[3.4rem]">
+              <p className="font-script text-[2rem] text-cocoa-700 sm:text-3xl">Fresh cakes in 30+ flavours</p>
+              <h1 className="mt-2 text-4xl leading-[1.1] font-bold tracking-tight sm:text-5xl xl:text-[3.4rem] short:mt-1 short:text-3xl short:sm:text-4xl short:xl:text-[2.75rem] shorter:md:mt-0 shorter:xl:text-[2.4rem]">
                 Cake delivery in Nairobi, <span className="text-berry-500">in as little as 1 hour.</span>
               </h1>
-              <p className="mt-5 max-w-md text-cocoa-700">
+              <p className="mt-5 max-w-md text-cocoa-700 short:mt-3 short:max-w-lg shorter:md:mt-2 shorter:md:text-sm">
                 Over 30 flavours, baked fresh every morning. Choose a ready cake for today, or design something only you could dream up.
               </p>
-              <div className="mt-7 flex flex-wrap gap-3">
+              <div className="mt-7 flex flex-wrap gap-3 short:mt-5 shorter:md:mt-4">
                 <Link to="/shop?category=ready" className="btn-primary">
                   Shop ready cakes <ArrowRight className="size-4" />
                 </Link>
