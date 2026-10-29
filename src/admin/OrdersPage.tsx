@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, MapPin, Phone, RefreshCw, Search } from 'lucide-react'
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  AlertCircle, CalendarDays, Check, CheckCircle2, ChevronDown, Clock, Copy, CreditCard, MapPin, Phone, RefreshCw, Search, Smartphone,
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatKES } from '../lib/format'
 import { checkPayment, useMpesaPayment } from '../lib/mpesa'
@@ -96,12 +98,46 @@ export default function OrdersPage({ token }: { token: string }) {
   )
 }
 
+/** Splits order notes into the client's photos ("Photo N: <link>" lines) and "Label: value" rows. */
+function parseNotes(text: string | null) {
+  const photos: string[] = []
+  const rows: { label: string; value: string }[] = []
+  for (const line of (text ?? '').split('\n')) {
+    if (!line.trim()) continue
+    const photo = line.match(/^Photo \d+: (https?:\/\/\S+)$/)
+    if (photo) {
+      photos.push(photo[1])
+      continue
+    }
+    const kv = line.match(/^([^:]{1,30}):\s*(.*)$/)
+    if (kv && !/^https?$/i.test(kv[1])) rows.push({ label: kv[1], value: kv[2] })
+    else rows.push({ label: '', value: line })
+  }
+  return { photos, rows }
+}
+
+const payIcons = { paid: CheckCircle2, pending: Clock, unpaid: AlertCircle }
+
+function Panel({ title, className = '', children }: { title: string; className?: string; children: ReactNode }) {
+  return (
+    <section className={`rounded-2xl p-4 ring-1 ring-cream-200 ${className || 'bg-white'}`}>
+      <h3 className="mb-3 font-bold">{title}</h3>
+      {children}
+    </section>
+  )
+}
+
 function OrderCard({ order: o, token, onUpdate, onReload }: { order: Order; token: string; onUpdate: (c: Partial<Order>) => void; onReload: () => void }) {
   const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
   const payment = useMpesaPayment()
   const [checking, setChecking] = useState(false)
   const balance = Math.max(0, o.total - o.amount_paid)
+  const paidPercent = o.total > 0 ? Math.min(100, Math.round((o.amount_paid / o.total) * 100)) : 0
   const pay = paymentStyles[o.payment_status]
+  const PayIcon = payIcons[o.payment_status]
+  const status = orderStatuses.find((s) => s.id === o.status)!
+  const { photos, rows } = parseNotes(o.notes)
 
   // Refresh the list once a payment requested from here goes through.
   useEffect(() => {
@@ -139,38 +175,85 @@ function OrderCard({ order: o, token, onUpdate, onReload }: { order: Order; toke
     })
   }
 
+  const copyNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(o.phone)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      window.prompt('Copy this number:', o.phone)
+    }
+  }
+
   return (
-    <li className="rounded-3xl bg-white ring-1 ring-cream-200">
-      <button onClick={() => setOpen((v) => !v)} className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 p-4 text-left">
-        <span className="font-mono text-sm font-bold text-cocoa-500">#{orderCode(o.id)}</span>
-        <span className="min-w-32 flex-1">
-          <span className="block font-semibold">{o.customer_name || 'No name'}</span>
-          <span className="text-xs text-cocoa-500">{kindLabel[o.kind]} · {formatDateTime(o.created_at)}</span>
+    <li className="rounded-3xl bg-white shadow-sm ring-1 ring-cream-200">
+      <button onClick={() => setOpen((v) => !v)} className="flex w-full flex-wrap items-center gap-x-5 gap-y-3 p-4 text-left sm:p-5">
+        <span className="rounded-xl bg-berry-100 px-3 py-2 font-mono text-sm font-bold text-berry-600">#{orderCode(o.id)}</span>
+        <span className="min-w-36 flex-1">
+          <span className="block text-lg leading-tight font-bold">{o.customer_name || 'No name'}</span>
+          <span className="text-sm text-cocoa-500">{kindLabel[o.kind]} • {formatDateTime(o.created_at)}</span>
         </span>
-        {o.delivery_date && <span className="text-sm">Due <strong>{formatDate(o.delivery_date)}</strong></span>}
-        <span className="font-bold">{o.total ? formatKES(o.total) : '—'}</span>
-        <Badge className={pay.className}>{pay.label}</Badge>
-        <Badge className={orderStatuses.find((s) => s.id === o.status)!.className}>{orderStatuses.find((s) => s.id === o.status)!.label}</Badge>
-        <ChevronDown className={`size-4 transition ${open ? 'rotate-180' : ''}`} />
+        <span className="flex flex-wrap items-center gap-2">
+          <Badge className={`gap-1 ${pay.className}`}><PayIcon className="size-3.5" /> {pay.label}</Badge>
+          <Badge className={status.className}>{status.label}</Badge>
+        </span>
+        {o.delivery_date && (
+          <span className="flex items-center gap-1.5 text-sm text-cocoa-700"><CalendarDays className="size-4 text-cocoa-500" /> Due <strong>{formatDate(o.delivery_date)}</strong></span>
+        )}
+        <span className="border-cream-200 text-right sm:border-l sm:pl-5">
+          <span className="block text-xl leading-tight font-bold text-berry-600">{o.total ? formatKES(o.total) : '—'}</span>
+          <span className="text-xs text-cocoa-500">Total order value</span>
+        </span>
+        <ChevronDown className={`size-5 transition ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="grid gap-6 border-t border-cream-200 p-4 md:grid-cols-[1fr_18rem]">
-          <div className="space-y-4 text-sm">
-            <div className="flex flex-wrap gap-2">
-              <a href={`tel:${o.phone}`} className="btn bg-cream-100 px-3! py-1.5!"><Phone className="size-4" /> {o.phone}</a>
-              <a href={`https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(`Hi ${o.customer_name}, about your order #${orderCode(o.id)}: `)}`} target="_blank" rel="noopener" className="btn bg-[#25D366]/10 px-3! py-1.5! text-[#128C4B]">
-                <WhatsAppIcon /> WhatsApp
-              </a>
+        <div className="grid gap-4 border-t border-cream-200 p-4 text-sm sm:p-5 lg:grid-cols-[1fr_1.3fr_1fr]">
+          <Panel title="Customer & Contact">
+            <div className="flex items-center gap-4">
+              {photos[0] ? (
+                <a href={photos[0]} target="_blank" rel="noopener noreferrer" title="Client photo: open full size" className="shrink-0">
+                  <img src={photos[0]} alt="Client photo" loading="lazy" className="size-24 rounded-full object-cover ring-4 ring-cream-100" />
+                </a>
+              ) : (
+                <span className="grid size-24 shrink-0 place-items-center rounded-full bg-berry-100 text-3xl font-bold text-berry-600">
+                  {(o.customer_name || '?').charAt(0).toUpperCase()}
+                </span>
+              )}
+              <div className="min-w-0 space-y-1.5">
+                <a href={`tel:${o.phone}`} className="block truncate text-lg font-bold hover:text-berry-600">{o.phone}</a>
+                <p className="flex items-center gap-1.5 text-cocoa-500"><Phone className="size-4" /> Phone</p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button onClick={copyNumber} className="btn border border-berry-500 px-3! py-1.5! text-berry-600 hover:bg-berry-100">
+                    {copied ? <><Check className="size-4" /> Copied</> : <><Copy className="size-4" /> Copy number</>}
+                  </button>
+                  <a
+                    href={`https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(`Hi ${o.customer_name}, about your order #${orderCode(o.id)}: `)}`}
+                    target="_blank"
+                    rel="noopener"
+                    className="btn bg-[#25D366]/10 px-3! py-1.5! text-[#128C4B]"
+                    aria-label="WhatsApp the client"
+                    title="WhatsApp"
+                  >
+                    <WhatsAppIcon />
+                  </a>
+                </div>
+              </div>
             </div>
-            {o.address && <p className="whitespace-pre-line"><span className="text-cocoa-500">Deliver to:</span> {linkify(o.address)}</p>}
-            {/* Website orders keep the client's map pin link in `zone`; older orders have an area name there. */}
-            {o.zone && (/^https?:\/\//.test(o.zone)
-              ? <a href={o.zone} target="_blank" rel="noopener noreferrer" className="btn bg-pistachio-100 px-3! py-1.5!"><MapPin className="size-4" /> Open map pin</a>
-              : <p><span className="text-cocoa-500">Area:</span> {o.zone}</p>)}
+            {photos.length > 1 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {photos.slice(1).map((src, n) => (
+                  <a key={src} href={src} target="_blank" rel="noopener noreferrer" className="block size-12 overflow-hidden rounded-xl ring-1 ring-cream-200" title="Open full size">
+                    <img src={src} alt={`Client photo ${n + 2}`} loading="lazy" className="size-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            )}
+          </Panel>
 
+          <Panel title="Order Details">
             {o.items.length > 0 && (
-              <ul className="divide-y divide-cream-200 rounded-2xl bg-cream-50 px-3">
+              <ul className="mb-3 divide-y divide-cream-200 rounded-xl bg-cream-50 px-3">
                 {o.items.map((i, n) => (
                   <li key={n} className="flex justify-between gap-3 py-2">
                     <span>
@@ -183,84 +266,82 @@ function OrderCard({ order: o, token, onUpdate, onReload }: { order: Order; toke
                 ))}
               </ul>
             )}
-            {o.notes && <Notes text={o.notes} />}
-            {o.items.length > 0 && (
-              <p className="text-cocoa-500">Subtotal {formatKES(o.subtotal)} · Delivery {o.delivery_fee ? formatKES(o.delivery_fee) : 'free'} · <strong className="text-cocoa-800">Total {formatKES(o.total)}</strong></p>
-            )}
-          </div>
+            <dl className="grid grid-cols-[7.5rem_1fr] gap-x-3 gap-y-2.5">
+              {o.address && <><dt className="text-cocoa-500">Deliver to</dt><dd className="whitespace-pre-line">{linkify(o.address)}</dd></>}
+              {/* Website orders keep the client's map pin link in `zone`; older orders have an area name there. */}
+              {o.zone && (/^https?:\/\//.test(o.zone)
+                ? <><dt className="text-cocoa-500">Map pin</dt><dd><a href={o.zone} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-berry-600 underline"><MapPin className="size-4" /> Open map</a></dd></>
+                : <><dt className="text-cocoa-500">Area</dt><dd>{o.zone}</dd></>)}
+              {o.items.length > 0 && (
+                <><dt className="text-cocoa-500">Delivery fee</dt><dd>{o.delivery_fee ? formatKES(o.delivery_fee) : 'Free / to confirm'}</dd></>
+              )}
+              {rows.map((r, n) =>
+                r.label
+                  ? <Fragment key={n}><dt className="text-cocoa-500">{r.label}</dt><dd className="font-medium break-words">{linkify(r.value)}</dd></Fragment>
+                  : <dd key={n} className="col-span-2 break-words">{linkify(r.value)}</dd>,
+              )}
+            </dl>
+          </Panel>
 
-          <div className="space-y-3">
-            <label className="block text-xs font-medium text-cocoa-500">
+          <Panel title="Order Management">
+            <label className="block font-medium">
               Order status
-              <select value={o.status} onChange={(e) => onUpdate({ status: e.target.value as OrderStatus })} className="input mt-1">
+              <select value={o.status} onChange={(e) => onUpdate({ status: e.target.value as OrderStatus })} className="input mt-1.5">
                 {orderStatuses.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
             </label>
             {o.kind === 'custom' && (
-              <label className="block text-xs font-medium text-cocoa-500">
+              <label className="mt-3 block font-medium">
                 Quoted price (KES)
-                <input type="number" min={0} defaultValue={o.total || ''} onBlur={(e) => Number(e.target.value) !== o.total && onUpdate({ total: Number(e.target.value) || 0, subtotal: Number(e.target.value) || 0 })} className="input mt-1" />
+                <input type="number" min={0} defaultValue={o.total || ''} onBlur={(e) => Number(e.target.value) !== o.total && onUpdate({ total: Number(e.target.value) || 0, subtotal: Number(e.target.value) || 0 })} className="input mt-1.5" />
               </label>
             )}
+          </Panel>
 
-            <div className="rounded-2xl bg-cream-50 p-3 text-sm">
-              <p className="flex justify-between"><span>Paid</span><strong>{formatKES(o.amount_paid)}</strong></p>
-              {balance > 0 && o.payment_status !== 'paid' && <p className="flex justify-between text-berry-600"><span>Balance</span><strong>{formatKES(balance)}</strong></p>}
-              {o.mpesa_code && <p className="mt-1 text-xs text-cocoa-500">Code: <strong className="font-mono">{o.mpesa_code}</strong>{o.paid_at && ` · ${formatDateTime(o.paid_at)}`}</p>}
+          <Panel title="Payment Summary" className="bg-berry-100/30 lg:col-span-2">
+            <div className="grid grid-cols-3 gap-4 sm:grid-cols-[auto_auto_auto_1fr] sm:items-center sm:gap-0 sm:divide-x sm:divide-cream-200">
+              <div className="sm:pr-6">
+                <p className="text-cocoa-500">{o.kind === 'custom' ? 'Total quoted' : 'Order total'}</p>
+                <p className="text-xl font-bold">{formatKES(o.total)}</p>
+              </div>
+              <div className="sm:px-6">
+                <p className="text-cocoa-500">Amount paid</p>
+                <p className="text-xl font-bold text-emerald-700">{formatKES(o.amount_paid)}</p>
+              </div>
+              <div className="sm:px-6">
+                <p className="text-cocoa-500">Balance due</p>
+                <p className={`text-xl font-bold ${balance ? 'text-berry-600' : 'text-emerald-700'}`}>{formatKES(balance)}</p>
+              </div>
+              <div className="col-span-3 sm:col-span-1 sm:pl-6">
+                <p className="mb-2 flex items-center justify-between gap-2 text-cocoa-500">
+                  <span>{paidPercent}% paid</span>
+                  {balance > 0 && <span className="rounded-full bg-berry-100 px-2 py-0.5 text-xs font-semibold text-berry-600">{formatKES(balance)}</span>}
+                </p>
+                <div className="h-2.5 overflow-hidden rounded-full bg-berry-100" role="progressbar" aria-valuenow={paidPercent} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${paidPercent}%` }} />
+                </div>
+              </div>
             </div>
+            {o.mpesa_code && <p className="mt-3 text-xs text-cocoa-500">M-Pesa code / note: <strong className="font-mono">{o.mpesa_code}</strong>{o.paid_at && ` · ${formatDateTime(o.paid_at)}`}</p>}
+          </Panel>
 
-            <MpesaStatus state={payment.state} error={payment.error} mpesaCode={payment.mpesaCode} phone={o.phone} />
+          <section className="flex flex-col justify-center gap-3 rounded-2xl p-4 ring-1 ring-cream-200">
+            <div className="flex flex-wrap gap-3">
+              <button onClick={requestPayment} disabled={payment.state === 'sending' || payment.state === 'waiting'} className="btn-primary flex-1 whitespace-nowrap">
+                <Smartphone className="size-4" /> Send M-Pesa prompt
+              </button>
+              <button onClick={markPaid} className="btn flex-1 whitespace-nowrap bg-white ring-1 ring-cream-200 hover:bg-cream-50">
+                <CreditCard className="size-4" /> Record payment manually
+              </button>
+            </div>
             {o.payment_status === 'pending' && o.payment_reference && (
               <button onClick={check} disabled={checking} className="btn w-full bg-butter-100 py-2!">{checking ? 'Checking…' : 'Check M-Pesa payment'}</button>
             )}
-            <button onClick={requestPayment} disabled={payment.state === 'sending' || payment.state === 'waiting'} className="btn-primary w-full py-2!">
-              Send M-Pesa prompt
-            </button>
-            <button onClick={markPaid} className="btn w-full bg-white py-2! ring-1 ring-cream-200">Record payment manually</button>
-          </div>
+            <MpesaStatus state={payment.state} error={payment.error} mpesaCode={payment.mpesaCode} phone={o.phone} />
+          </section>
         </div>
       )}
     </li>
-  )
-}
-
-/**
- * Order notes. Photos the client uploaded ("Photo 1: <link>" lines) are shown as pictures on one
- * half, with the rest of the request on the other.
- */
-function Notes({ text }: { text: string }) {
-  const photos: string[] = []
-  const rest = text
-    .split('\n')
-    .filter((line) => {
-      const m = line.match(/^Photo \d+: (https?:\/\/\S+)$/)
-      if (m) photos.push(m[1])
-      return !m
-    })
-    .join('\n')
-
-  const details = <p className="min-w-0 flex-1 self-start whitespace-pre-line rounded-2xl bg-butter-100 p-3">{linkify(rest)}</p>
-  if (!photos.length) return details
-
-  // Small thumbnails beside the details; click one to see it full size.
-  return (
-    <div className="flex items-start gap-3">
-      <div className={`grid shrink-0 gap-1.5 ${photos.length > 1 ? 'grid-cols-2' : ''}`}>
-        {photos.map((src, n) => (
-          <a
-            key={src}
-            href={src}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`block overflow-hidden rounded-xl bg-cream-100 ring-1 ring-cream-200 ${photos.length > 1 ? 'size-14' : 'size-24'}`}
-            title="Open full size"
-          >
-            <img src={src} alt={`Client photo ${n + 1}`} loading="lazy" className="size-full object-cover transition hover:scale-105" />
-          </a>
-        ))}
-      </div>
-      {details}
-    </div>
   )
 }
 
