@@ -7,8 +7,6 @@ import SectionHeading from '../components/SectionHeading'
 import { formatKES } from '../lib/format'
 import { site } from '../config'
 
-const marqueeWords = ['Birthday Cakes', 'Wedding Tiers', 'Cupcakes', 'Kids Themes', 'Red Velvet', 'Flowers & Cakes', 'Same-Day Delivery']
-
 const perks = [
   { Icon: Truck, title: 'Fast delivery', text: 'Ready cakes in 1–3 hrs' },
   { Icon: ShieldCheck, title: 'Secure payment', text: 'M-Pesa, Visa & Mastercard' },
@@ -105,15 +103,6 @@ export default function Home() {
 
       <ProductRow category="ready" title="Ready now, delivered in 1–2 hrs" />
       <ProductRow category="birthday" title="Featured birthday designs" tinted />
-
-      {/* MARQUEE */}
-      <div className="-rotate-1 overflow-hidden bg-berry-500 py-4 text-white" aria-hidden="true">
-        <div className="flex w-max animate-marquee gap-10 font-script text-3xl">
-          {[...marqueeWords, ...marqueeWords].map((w, i) => (
-            <span key={i} className="flex items-center gap-10">{w} <span>•</span></span>
-          ))}
-        </div>
-      </div>
 
       <ProductRow category="anniversary" title="Anniversary cakes" />
       <ProductRow category="signature" title="Explore signature flavours" tinted />

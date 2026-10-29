@@ -21,14 +21,9 @@
   --color-butter-400: #f5c95c;
   --color-butter-100: #fdf1cf;
 
-  --animate-marquee: marquee 30s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
   --animate-pop: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 
-  @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
   @keyframes pop {
     from { opacity: 0; transform: scale(0.7) rotate(-8deg); }
     to { opacity: 1; transform: scale(1) rotate(6deg); }
@@ -40,7 +35,7 @@
 }
 
 @layer base {
-  /* The tilted marquee and hero badges poke past the edges; never allow sideways scroll. */
+  /* Hero badges poke past the edges; never allow sideways scroll. */
   html, body { overflow-x: clip; }
   html { scroll-behavior: smooth; }
   body {
