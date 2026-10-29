@@ -9,6 +9,7 @@
 // POST /api/payhero  { phone, amount, name?, orderId? }                        → client paying at checkout
 // POST /api/payhero  same plus { reference? }, "Authorization: Bearer <login>"  → admin requesting a payment
 // GET  /api/payhero?reference=...                                              → payment status (marks the order paid)
+// POST /api/payhero?callback=1                                                 → PayHero's callback when a payment finishes
 
 const PAYHERO = 'https://backend.payhero.co.ke/api/v2'
 // Checkout payments are capped so the public endpoint can't be used for huge requests.
@@ -72,6 +73,7 @@ const clean = (s: unknown, max: number) => String(s ?? '').replace(/[^\w .,'&#/-
 export async function POST(request: Request) {
   const cfg = payhero()
   if (!cfg) return json({ error: 'M-Pesa payments are not set up yet.' }, 503)
+  if (new URL(request.url).searchParams.has('callback')) return callback(request, cfg)
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
   if (!body) return json({ error: 'Invalid request.' }, 400)
@@ -109,6 +111,8 @@ export async function POST(request: Request) {
       provider: 'm-pesa',
       external_reference: orderId ?? `ORDER-${Date.now()}`,
       customer_name: name || undefined,
+      // PayHero calls this when the client pays or cancels, so the order is updated even if they close the page.
+      callback_url: `${new URL(request.url).origin}/api/payhero?callback=1`,
     }),
   })
   const data = (await res.json().catch(() => ({}))) as { success?: boolean; reference?: string; error_message?: string; message?: string }
@@ -127,18 +131,31 @@ export async function POST(request: Request) {
   return json({ reference: data.reference, orderId })
 }
 
-export async function GET(request: Request) {
-  const cfg = payhero()
-  if (!cfg) return json({ error: 'M-Pesa payments are not set up yet.' }, 503)
+type PayHeroConfig = NonNullable<ReturnType<typeof payhero>>
 
-  const reference = new URL(request.url).searchParams.get('reference')?.trim()
-  if (!reference || !/^[\w-]{4,64}$/.test(reference)) return json({ error: 'Missing reference.' }, 400)
+/**
+ * PayHero's callback. Anyone could post to this URL, so its contents are only a hint: we look up the
+ * order it names and ask PayHero ourselves (with the reference we stored) whether it was really paid.
+ */
+async function callback(request: Request, cfg: PayHeroConfig) {
+  const body = (await request.json().catch(() => null)) as { response?: { ExternalReference?: string } } | null
+  const orderId = body?.response?.ExternalReference
+  if (isUuid(orderId)) {
+    const rows = await db<{ payment_reference: string | null }[]>(`orders?select=payment_reference&id=eq.${orderId}&payment_status=eq.pending`)
+    const reference = rows?.[0]?.payment_reference
+    if (reference) await recordOutcome(reference, cfg)
+  }
+  // Always acknowledge, so PayHero doesn't keep retrying.
+  return json({ received: true })
+}
 
+/** Asks PayHero for a payment's status and records the outcome on its order. */
+async function recordOutcome(reference: string, cfg: PayHeroConfig) {
   const res = await fetch(`${PAYHERO}/transaction-status?reference=${encodeURIComponent(reference)}`, {
     headers: { Authorization: cfg.auth },
   })
   const data = (await res.json().catch(() => ({}))) as { status?: string; provider_reference?: string }
-  if (!res.ok) return json({ status: 'QUEUED' })
+  if (!res.ok) return { status: 'QUEUED' }
   const status = data.status ?? 'QUEUED'
 
   // Record the outcome on the order. Only PayHero's answer is trusted, never the caller's.
@@ -164,6 +181,16 @@ export async function GET(request: Request) {
     }
   }
 
+  return { status, mpesaCode: status === 'SUCCESS' ? data.provider_reference : undefined }
+}
+
+export async function GET(request: Request) {
+  const cfg = payhero()
+  if (!cfg) return json({ error: 'M-Pesa payments are not set up yet.' }, 503)
+
+  const reference = new URL(request.url).searchParams.get('reference')?.trim()
+  if (!reference || !/^[\w-]{4,64}$/.test(reference)) return json({ error: 'Missing reference.' }, 400)
+
   // Only what the page needs: QUEUED, SUCCESS or FAILED, and the M-Pesa code once paid.
-  return json({ status, mpesaCode: status === 'SUCCESS' ? data.provider_reference : undefined })
+  return json(await recordOutcome(reference, cfg))
 }
