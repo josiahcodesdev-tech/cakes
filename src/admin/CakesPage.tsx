@@ -5,6 +5,7 @@ import { formatKES } from '../lib/format'
 import { categories, defaultReadyIn, slugify } from '../data/products'
 import { refreshProducts, type ProductRow } from '../data/catalog'
 import type { CategoryId, Product } from '../types'
+import { resizeImage } from '../lib/images'
 import { Badge, PageTitle } from './ui'
 
 const tagOptions: NonNullable<Product['tags']>[number][] = ['bestseller', 'new', 'eggless', 'sugar-free']
@@ -108,17 +109,6 @@ export default function CakesPage() {
       {editing && <CakeEditor draft={editing} takenSlugs={rows.map((r) => r.slug)} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void afterChange() }} />}
     </div>
   )
-}
-
-/** Shrinks big phone photos before upload so the site stays fast. */
-async function resizeImage(file: File, maxSide = 1600): Promise<Blob> {
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not read that image'))), 'image/jpeg', 0.85))
 }
 
 function CakeEditor({ draft, takenSlugs, onClose, onSaved }: { draft: Draft; takenSlugs: string[]; onClose: () => void; onSaved: () => void }) {

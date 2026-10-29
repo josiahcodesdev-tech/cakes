@@ -1,8 +1,15 @@
 import { useState, type FormEvent } from 'react'
+import { ImagePlus, Loader2, X } from 'lucide-react'
 import { sizes } from '../data/products'
 import { whatsappLink } from '../lib/format'
 import { newOrderId, orderCode, ordersEnabled, saveOrder } from '../lib/orders'
+import { resizeImage } from '../lib/images'
+import { supabase } from '../lib/supabase'
 import { WhatsAppIcon } from '../components/BrandIcons'
+
+const MAX_PHOTOS = 4
+
+type Photo = { key: string; preview: string; url?: string; error?: string }
 
 const occasions = ['Birthday', 'Wedding', 'Baby shower', 'Graduation', 'Anniversary', 'Corporate', 'Other']
 const today = new Date().toISOString().split('T')[0]
@@ -14,9 +21,39 @@ export default function CustomOrder() {
   const update = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
 
+  // Photos upload as soon as they're picked, so sending on WhatsApp can open straight from the click.
+  const [photos, setPhotos] = useState<Photo[]>([])
+  const uploading = photos.some((p) => !p.url && !p.error)
+  const photoLinks = photos.flatMap((p) => (p.url ? [p.url] : []))
+
+  const addPhotos = (files: FileList | null) => {
+    if (!files || !supabase) return
+    for (const file of [...files].slice(0, MAX_PHOTOS - photos.length)) {
+      const key = crypto.randomUUID()
+      setPhotos((list) => [...list, { key, preview: URL.createObjectURL(file) }])
+      const done = (changes: Partial<Photo>) => setPhotos((list) => list.map((p) => (p.key === key ? { ...p, ...changes } : p)))
+      resizeImage(file)
+        .then(async (blob) => {
+          // Stored by our server function (api/upload.ts), which checks it's a real photo.
+          const res = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob })
+          const data = (await res.json().catch(() => ({}))) as { url?: string }
+          if (!res.ok || !data.url) throw new Error('Upload failed')
+          done({ url: data.url })
+        })
+        .catch(() => done({ error: 'Upload failed' }))
+    }
+  }
+
+  const removePhoto = (key: string) => setPhotos((list) => list.filter((p) => p.key !== key))
+
   const submit = (e: FormEvent) => {
     e.preventDefault()
+    if (uploading) return
     const id = newOrderId()
+    const pictures = [
+      ...photoLinks.map((url, n) => `Photo ${n + 1}: ${url}`),
+      form.photos.trim() && `Reference links: ${form.photos.trim()}`,
+    ]
     // Saved for the admin page; not awaited so the WhatsApp window opens straight from the click.
     void saveOrder(id, {
       kind: 'custom',
@@ -28,7 +65,7 @@ export default function CustomOrder() {
         `Size: ${form.size}`,
         form.budget && `Budget: KES ${form.budget}`,
         `Design idea: ${form.theme}`,
-        form.photos.trim() && `Reference pictures: ${form.photos.trim()}`,
+        ...pictures,
       ].filter(Boolean).join('\n'),
       total: Number(form.budget.replace(/\D/g, '')) || 0,
     })
@@ -42,7 +79,7 @@ export default function CustomOrder() {
       `Date needed: ${form.date}`,
       form.budget && `Budget: KES ${form.budget}`,
       `Design idea: ${form.theme}`,
-      form.photos.trim() && `Reference pictures: ${form.photos.trim()}`,
+      ...pictures,
     ]
       .filter(Boolean)
       .join('\n')
@@ -108,6 +145,29 @@ export default function CustomOrder() {
             placeholder="Describe your design: theme, colours, characters, flavours, message…"
             className="input resize-none"
           />
+          {supabase && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-cocoa-500">Photos of the cake you want (optional, up to {MAX_PHOTOS})</p>
+              <div className="flex flex-wrap gap-3">
+                {photos.map((p) => (
+                  <div key={p.key} className="relative size-20 overflow-hidden rounded-2xl bg-cream-100 ring-1 ring-cream-200">
+                    <img src={p.preview} alt="" className={`size-full object-cover ${p.url ? '' : 'opacity-50'}`} />
+                    {!p.url && !p.error && <Loader2 className="absolute inset-0 m-auto size-6 animate-spin text-cocoa-800" />}
+                    {p.error && <span className="absolute inset-x-0 bottom-0 bg-berry-600 py-0.5 text-center text-[10px] font-semibold text-white">{p.error}</span>}
+                    <button type="button" onClick={() => removePhoto(p.key)} className="absolute top-1 right-1 rounded-full bg-white/90 p-0.5 shadow" aria-label="Remove photo">
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {photos.length < MAX_PHOTOS && (
+                  <label className="grid size-20 cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-cream-200 text-center text-[11px] text-cocoa-500 hover:border-berry-500 hover:text-berry-600">
+                    <span><ImagePlus className="mx-auto mb-0.5 size-5" />Add photo</span>
+                    <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { addPhotos(e.target.files); e.target.value = '' }} />
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
           <label className="block text-xs font-medium text-cocoa-500">
             Links to reference pictures (optional)
             <input
@@ -118,8 +178,8 @@ export default function CustomOrder() {
               inputMode="url"
             />
           </label>
-          <button type="submit" className="btn w-full bg-[#25D366] text-white hover:bg-[#1fb857]">
-            <WhatsAppIcon /> Send request on WhatsApp
+          <button type="submit" disabled={uploading} className="btn w-full bg-[#25D366] text-white hover:bg-[#1fb857]">
+            {uploading ? <><Loader2 className="size-4 animate-spin" /> Uploading photo…</> : <><WhatsAppIcon /> Send request on WhatsApp</>}
           </button>
           <p className="text-center text-xs text-cocoa-500">Please order custom cakes at least 48 hours in advance.</p>
         </form>
