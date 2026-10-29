@@ -24,10 +24,10 @@ export default function Home() {
           <div className="relative grid items-center gap-8 p-7 sm:p-12 md:grid-cols-[1.1fr_1fr] short:gap-6 short:p-6 short:sm:p-8 short:md:grid-cols-[1.2fr_1fr] short:lg:px-12 shorter:sm:py-5">
             <div>
               <p className="font-script text-[2rem] text-cocoa-700 sm:text-3xl">Fresh cakes in 30+ flavours</p>
-              <h1 className="mt-2 text-4xl leading-[1.1] font-bold tracking-tight sm:text-5xl xl:text-[3.4rem] short:mt-1 short:text-3xl short:sm:text-4xl short:xl:text-[2.75rem] shorter:md:mt-0 shorter:xl:text-[2.4rem]">
+              <h1 className="mt-2 text-4xl leading-[1.1] font-bold tracking-tight sm:text-5xl xl:text-[3.4rem] short:mt-1 short:text-3xl short:sm:text-[2.6rem] short:xl:text-[3rem] shorter:md:mt-0 shorter:sm:text-[2.6rem] shorter:xl:text-[2.8rem]">
                 Cake delivery in Nairobi, <span className="text-berry-500">in as little as 1 hour.</span>
               </h1>
-              <p className="mt-5 max-w-md text-cocoa-700 short:mt-3 short:max-w-lg shorter:md:mt-2 shorter:md:text-sm">
+              <p className="mt-5 max-w-md text-cocoa-700 short:mt-3 short:max-w-xl short:sm:text-lg shorter:md:mt-2 shorter:md:text-lg">
                 Over 30 flavours, baked fresh every morning. Choose a ready cake for today, or design something only you could dream up.
               </p>
               <div className="mt-7 flex flex-wrap gap-3 short:mt-5 shorter:md:mt-4">
