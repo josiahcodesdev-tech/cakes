@@ -29,7 +29,7 @@ export default function RequestPayment({ token }: { token: string }) {
       <PageTitle title="Request payment" />
       <form onSubmit={send} className="space-y-4 rounded-3xl bg-white p-6 ring-1 ring-cream-200">
         <p className="text-sm text-cocoa-500">
-          Sends an M-Pesa prompt to your client’s phone. To charge an existing order, use “Send M-Pesa prompt” on it in <Link to="../orders" className="underline">Orders</Link> instead.
+          Sends an M-Pesa prompt to your client’s phone. To charge an existing order, use “Send M-Pesa prompt” on it in <Link to="/admin/orders" className="underline">Orders</Link> instead.
         </p>
         <label className={label}>Client’s M-Pesa number<input required type="tel" value={form.phone} onChange={update('phone')} placeholder="0712 345 678" className="input mt-1" /></label>
         <label className={label}>Amount (KES)<input required type="number" min={1} step={1} value={form.amount} onChange={update('amount')} placeholder="e.g. 2500" className="input mt-1" /></label>

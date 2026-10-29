@@ -11,10 +11,10 @@ import AccountsPage from './AccountsPage'
 import RequestPayment from './RequestPayment'
 
 const tabs = [
-  { to: 'orders', label: 'Orders', Icon: ReceiptText },
-  { to: 'cakes', label: 'Cakes', Icon: Cake },
-  { to: 'accounts', label: 'Accounts', Icon: Wallet },
-  { to: 'payments', label: 'Request payment', Icon: Smartphone },
+  { to: '/admin/orders', label: 'Orders', Icon: ReceiptText },
+  { to: '/admin/cakes', label: 'Cakes', Icon: Cake },
+  { to: '/admin/accounts', label: 'Accounts', Icon: Wallet },
+  { to: '/admin/payments', label: 'Request payment', Icon: Smartphone },
 ]
 
 /** The shop owner's area at /admin: log in with email and password, then manage orders, cakes and money. */
@@ -67,12 +67,12 @@ export default function AdminApp() {
 
       <main className="min-w-0 flex-1 p-4 sm:p-8">
         <Routes>
-          <Route index element={<Navigate to="orders" replace />} />
+          <Route index element={<Navigate to="/admin/orders" replace />} />
           <Route path="orders" element={<OrdersPage token={token} />} />
           <Route path="cakes" element={<CakesPage />} />
           <Route path="accounts" element={<AccountsPage />} />
           <Route path="payments" element={<RequestPayment token={token} />} />
-          <Route path="*" element={<Navigate to="orders" replace />} />
+          <Route path="*" element={<Navigate to="/admin/orders" replace />} />
         </Routes>
       </main>
     </div>
