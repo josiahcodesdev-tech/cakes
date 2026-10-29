@@ -1,8 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
+import { Loader2, MapPin, Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react'
 import { useCart } from '../context/CartContext'
-import { deliveryZones } from '../data/products'
 import { useProducts } from '../data/catalog'
 import { cakeUrl, formatKES, whatsappLink } from '../lib/format'
 import type { CartItem, Product } from '../types'
@@ -22,14 +21,37 @@ const itemLink = (i: CartItem, products: Product[]) => {
 export default function Cart() {
   const { items, subtotal, updateQuantity, removeItem } = useCart()
   const products = useProducts()
-  const [zone, setZone] = useState(deliveryZones[0].area)
   const [form, setForm] = useState({ name: '', phone: '', date: today, address: '', notes: '' })
   const payment = useMpesaPayment()
   const paying = payment.state === 'sending' || payment.state === 'waiting'
 
-  const zoneFee = deliveryZones.find((z) => z.area === zone)?.fee ?? 0
-  const delivery = subtotal >= FREE_DELIVERY_FROM ? 0 : zoneFee
-  const total = subtotal + delivery
+  // We deliver anywhere: the client types their location and can drop a map pin.
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null)
+  const [locating, setLocating] = useState(false)
+  const [pinError, setPinError] = useState('')
+  const pinUrl = pin ? `https://maps.google.com/?q=${pin.lat.toFixed(6)},${pin.lng.toFixed(6)}` : ''
+
+  const usePhoneLocation = () => {
+    if (!navigator.geolocation) return setPinError('Your browser can’t share location. Type your location instead.')
+    setLocating(true)
+    setPinError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPin({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLocating(false)
+      },
+      () => {
+        setPinError('Couldn’t get your location. Allow location access, or type your location instead.')
+        setLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 15_000 },
+    )
+  }
+
+  // Delivery is free above the threshold; otherwise the fee depends on distance and is confirmed with the client.
+  const freeDelivery = subtotal >= FREE_DELIVERY_FROM
+  const delivery = freeDelivery ? 0 : null
+  const total = subtotal + (delivery ?? 0)
 
   const update = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -44,14 +66,14 @@ export default function Cart() {
       phone: form.phone,
       address: form.address,
       delivery_date: form.date,
-      zone,
+      zone: pinUrl || null, // the map pin link, when the client shared one
       notes: form.notes || null,
       items: items.map((i) => ({
         name: i.name, quantity: i.quantity, size: i.size, flavour: i.flavour, message: i.message || undefined,
         unitPrice: i.unitPrice, link: itemLink(i, products),
       })),
       subtotal,
-      delivery_fee: delivery,
+      delivery_fee: delivery ?? 0,
       total,
     }))
 
@@ -77,14 +99,15 @@ export default function Cart() {
       ...lines,
       '',
       `Subtotal: ${formatKES(subtotal)}`,
-      `Delivery (${zone}): ${delivery ? formatKES(delivery) : 'FREE'}`,
-      `*Total: ${formatKES(total)}*`,
+      `Delivery: ${freeDelivery ? 'FREE' : 'to be confirmed (depends on location)'}`,
+      `*Total: ${formatKES(total)}*${freeDelivery ? '' : ' + delivery'}`,
       payment.state === 'paid' && `✅ *PAID via M-Pesa*${payment.mpesaCode ? ` (code ${payment.mpesaCode})` : ''}`,
       '',
       `Name: ${form.name}`,
       `Phone: ${form.phone}`,
       `Delivery date: ${form.date}`,
-      `Address: ${form.address}`,
+      `Location: ${form.address}`,
+      pinUrl && `📍 Map pin: ${pinUrl}`,
       form.notes && `Notes: ${form.notes}`,
     ]
       .filter((l) => typeof l === 'string' && l !== '')
@@ -143,34 +166,47 @@ export default function Cart() {
           <h2 className="text-2xl font-bold">Delivery details</h2>
           <input required value={form.name} onChange={update('name')} placeholder="Full name" className="input" autoComplete="name" />
           <input required value={form.phone} onChange={update('phone')} placeholder="Phone (e.g. 0712 345 678)" type="tel" className="input" autoComplete="tel" />
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs font-medium text-cocoa-500">
-              Delivery date
-              <input required type="date" min={today} value={form.date} onChange={update('date')} className="input mt-1" />
-            </label>
-            <label className="text-xs font-medium text-cocoa-500">
-              Area
-              <select value={zone} onChange={(e) => setZone(e.target.value)} className="input mt-1">
-                {deliveryZones.map((z) => (
-                  <option key={z.area} value={z.area}>{z.area}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <input required value={form.address} onChange={update('address')} placeholder="Street, building, house no." className="input" autoComplete="street-address" />
+          <label className="block text-xs font-medium text-cocoa-500">
+            Delivery date
+            <input required type="date" min={today} value={form.date} onChange={update('date')} className="input mt-1" />
+          </label>
+          <label className="block text-xs font-medium text-cocoa-500">
+            Delivery location
+            <textarea
+              required
+              rows={2}
+              value={form.address}
+              onChange={update('address')}
+              placeholder="Area, street, building, house no. and a landmark — or paste a Google Maps link"
+              className="input mt-1 resize-none"
+              autoComplete="street-address"
+            />
+          </label>
+          {pin ? (
+            <p className="flex items-center gap-2 rounded-2xl bg-pistachio-100 p-3 text-sm">
+              <MapPin className="size-4 shrink-0 text-pistachio-500" />
+              <span className="flex-1">Map pin added. <a href={pinUrl} target="_blank" rel="noopener" className="underline">Check it on the map</a></span>
+              <button type="button" onClick={() => setPin(null)} className="rounded-full p-1 hover:bg-white" aria-label="Remove map pin"><X className="size-4" /></button>
+            </p>
+          ) : (
+            <button type="button" onClick={usePhoneLocation} disabled={locating} className="btn w-full bg-cream-100 py-2.5! hover:bg-cream-200">
+              {locating ? <><Loader2 className="size-4 animate-spin" /> Finding you…</> : <><MapPin className="size-4" /> Use my current location (drop a pin)</>}
+            </button>
+          )}
+          {pinError && <p className="text-xs text-berry-600">{pinError}</p>}
           <textarea value={form.notes} onChange={update('notes')} placeholder="Notes for the baker (optional)" rows={2} className="input resize-none" />
 
           <dl className="space-y-2 border-t border-cream-200 pt-4 text-sm">
             <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatKES(subtotal)}</dd></div>
             <div className="flex justify-between">
               <dt>Delivery</dt>
-              <dd>{delivery ? formatKES(delivery) : <span className="font-semibold text-pistachio-500">FREE</span>}</dd>
+              <dd>{freeDelivery ? <span className="font-semibold text-pistachio-500">FREE</span> : <span className="text-cocoa-500">Confirmed after we see your location</span>}</dd>
             </div>
-            {subtotal < FREE_DELIVERY_FROM && (
-              <p className="text-xs text-cocoa-500">Add {formatKES(FREE_DELIVERY_FROM - subtotal)} more for free delivery.</p>
+            {!freeDelivery && (
+              <p className="text-xs text-cocoa-500">Free delivery on orders above {formatKES(FREE_DELIVERY_FROM)}: add {formatKES(FREE_DELIVERY_FROM - subtotal)} more.</p>
             )}
             <div className="flex justify-between border-t border-cream-200 pt-3 text-lg font-bold">
-              <dt>Total</dt><dd className="text-berry-600">{formatKES(total)}</dd>
+              <dt>{freeDelivery ? 'Total' : 'Total (cakes)'}</dt><dd className="text-berry-600">{formatKES(total)}</dd>
             </div>
           </dl>
 
@@ -187,7 +223,9 @@ export default function Cart() {
           <p className="text-center text-xs text-cocoa-500">
             {payment.state === 'paid'
               ? 'Send us your order so we can start baking.'
-              : 'Pay now with an M-Pesa prompt on your phone, or send the order and pay after we confirm.'}
+              : freeDelivery
+                ? 'Pay now with an M-Pesa prompt on your phone, or send the order and pay after we confirm.'
+                : 'Pay for the cakes now, or send the order first. We’ll confirm the delivery fee on WhatsApp.'}
           </p>
         </form>
       </div>

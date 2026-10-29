@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, Phone, RefreshCw, Search } from 'lucide-react'
+import { ChevronDown, MapPin, Phone, RefreshCw, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatKES } from '../lib/format'
 import { checkPayment, useMpesaPayment } from '../lib/mpesa'
@@ -163,7 +163,11 @@ function OrderCard({ order: o, token, onUpdate, onReload }: { order: Order; toke
                 <WhatsAppIcon /> WhatsApp
               </a>
             </div>
-            {(o.address || o.zone) && <p><span className="text-cocoa-500">Deliver to:</span> {[o.address, o.zone].filter(Boolean).join(' · ')}</p>}
+            {o.address && <p className="whitespace-pre-line"><span className="text-cocoa-500">Deliver to:</span> {linkify(o.address)}</p>}
+            {/* Website orders keep the client's map pin link in `zone`; older orders have an area name there. */}
+            {o.zone && (/^https?:\/\//.test(o.zone)
+              ? <a href={o.zone} target="_blank" rel="noopener noreferrer" className="btn bg-pistachio-100 px-3! py-1.5!"><MapPin className="size-4" /> Open map pin</a>
+              : <p><span className="text-cocoa-500">Area:</span> {o.zone}</p>)}
 
             {o.items.length > 0 && (
               <ul className="divide-y divide-cream-200 rounded-2xl bg-cream-50 px-3">

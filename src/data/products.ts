@@ -165,9 +165,3 @@ export const testimonials = [
   { name: 'Kevin N.', location: 'Ruaka', text: 'The flowers + cake bundle saved my anniversary. My wife cried (the good kind).' },
 ]
 
-export const deliveryZones = [
-  { area: 'CBD, Upper Hill, Kilimani', fee: 300 },
-  { area: 'Westlands, Lavington, Kileleshwa', fee: 400 },
-  { area: 'Karen, Langata, South B/C', fee: 500 },
-  { area: 'Kasarani, Ruaka, Rongai, Kitengela', fee: 700 },
-]

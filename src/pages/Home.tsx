@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, ChefHat, ChevronRight, Headphones, Leaf, RotateCcw, ShieldCheck, Star, Truck } from 'lucide-react'
-import { categories, deliveryZones, img, menuFlavours, testimonials } from '../data/products'
+import { ArrowRight, ChefHat, Clock, Headphones, Leaf, MapPin, RotateCcw, ShieldCheck, Star, Truck } from 'lucide-react'
+import { categories, img, testimonials } from '../data/products'
 import ProductRow from '../components/ProductRow'
 import HeroCarousel from '../components/HeroCarousel'
 import SectionHeading from '../components/SectionHeading'
@@ -17,25 +17,8 @@ const perks = [
 export default function Home() {
   return (
     <>
-      {/* HERO: flavour menu + banner */}
-      <section className="container-x grid gap-6 pt-6 lg:grid-cols-[15rem_1fr]">
-        <aside className="hidden rounded-[2rem] bg-white p-3 ring-1 ring-cream-200 lg:block" aria-label="Shop by flavour">
-          <p className="px-3 pt-2 pb-3 font-display text-lg font-semibold">Shop by flavour</p>
-          <ul>
-            {menuFlavours.map((f) => (
-              <li key={f}>
-                <Link
-                  to={`/shop?q=${encodeURIComponent(f)}`}
-                  className="group flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm hover:bg-berry-100 hover:text-berry-600"
-                >
-                  {f} Cake
-                  <ChevronRight className="size-4 opacity-0 transition group-hover:opacity-100" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </aside>
-
+      {/* HERO */}
+      <section className="container-x pt-6">
         <div className="relative overflow-hidden rounded-[2.5rem] bg-berry-100">
           <div className="absolute -right-20 -bottom-24 size-96 rounded-full bg-butter-100 blur-3xl" aria-hidden="true" />
           <div className="relative grid items-center gap-8 p-7 sm:p-12 md:grid-cols-[1.1fr_1fr]">
@@ -166,15 +149,12 @@ export default function Home() {
       <section className="container-x grid gap-6 pt-16 lg:grid-cols-2">
         <div className="rounded-[2.5rem] bg-white p-8 ring-1 ring-cream-200 sm:p-10">
           <p className="eyebrow mb-3">Delivery</p>
-          <h2 className="text-3xl font-bold">We deliver all over Nairobi</h2>
+          <h2 className="text-3xl font-bold">We deliver wherever you are</h2>
           <p className="mt-3 text-cocoa-700">Chilled, sturdy boxes and careful riders. Free delivery on orders above {formatKES(8000)}.</p>
-          <ul className="mt-6 divide-y divide-cream-200">
-            {deliveryZones.map((z) => (
-              <li key={z.area} className="flex items-center justify-between gap-4 py-3">
-                <span className="text-sm">{z.area}</span>
-                <span className="shrink-0 font-semibold text-berry-600">{formatKES(z.fee)}</span>
-              </li>
-            ))}
+          <ul className="mt-6 divide-y divide-cream-200 text-sm">
+            <li className="flex gap-3 py-3"><MapPin className="size-5 shrink-0 text-berry-500" /> Type your location at checkout, or drop a pin with one tap.</li>
+            <li className="flex gap-3 py-3"><Truck className="size-5 shrink-0 text-berry-500" /> The delivery fee depends on distance. We confirm it on WhatsApp before we set off.</li>
+            <li className="flex gap-3 py-3"><Clock className="size-5 shrink-0 text-berry-500" /> Ready cakes can reach you in as little as 1–2 hours.</li>
           </ul>
         </div>
         <div className="rounded-[2.5rem] bg-butter-100 p-8 sm:p-10">
