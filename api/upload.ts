@@ -1,6 +1,6 @@
 // Vercel serverless function: stores a photo a client attaches to a custom cake request.
 // POST /api/upload with the image as the body (Content-Type image/jpeg, image/png or image/webp)
-// → { url } of the stored photo, which goes into the WhatsApp message and the admin order.
+// → { url } of the stored photo on our domain (/p/<name>), which goes into the WhatsApp message and the admin order.
 //
 // Uses SUPABASE_SERVICE_ROLE_KEY (already set for payments), so clients never get write access to
 // storage themselves. The "reference-photos" folder is created on first use.
@@ -51,5 +51,6 @@ export async function POST(request: Request) {
     console.error('Photo upload failed', res.status, await res.text().catch(() => ''))
     return json({ error: 'Upload failed. Please try again.' }, 502)
   }
-  return json({ url: `${url}/storage/v1/object/public/${BUCKET}/${name}` })
+  // A link on our own domain (served by api/photo.ts), not the storage provider's address.
+  return json({ url: `${new URL(request.url).origin}/p/${name}` })
 }

@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/cake/:slug", "destination": "/api/cake?slug=:slug" },
+    { "source": "/p/:name", "destination": "/api/photo?name=:name" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
