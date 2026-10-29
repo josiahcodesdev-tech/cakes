@@ -183,7 +183,7 @@ function OrderCard({ order: o, token, onUpdate, onReload }: { order: Order; toke
                 ))}
               </ul>
             )}
-            {o.notes && <p className="whitespace-pre-line rounded-2xl bg-butter-100 p-3">{linkify(o.notes)}</p>}
+            {o.notes && <Notes text={o.notes} />}
             {o.items.length > 0 && (
               <p className="text-cocoa-500">Subtotal {formatKES(o.subtotal)} · Delivery {o.delivery_fee ? formatKES(o.delivery_fee) : 'free'} · <strong className="text-cocoa-800">Total {formatKES(o.total)}</strong></p>
             )}
@@ -221,6 +221,38 @@ function OrderCard({ order: o, token, onUpdate, onReload }: { order: Order; toke
         </div>
       )}
     </li>
+  )
+}
+
+/**
+ * Order notes. Photos the client uploaded ("Photo 1: <link>" lines) are shown as pictures on one
+ * half, with the rest of the request on the other.
+ */
+function Notes({ text }: { text: string }) {
+  const photos: string[] = []
+  const rest = text
+    .split('\n')
+    .filter((line) => {
+      const m = line.match(/^Photo \d+: (https?:\/\/\S+)$/)
+      if (m) photos.push(m[1])
+      return !m
+    })
+    .join('\n')
+
+  const details = <p className="whitespace-pre-line rounded-2xl bg-butter-100 p-3">{linkify(rest)}</p>
+  if (!photos.length) return details
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className={`grid gap-2 ${photos.length > 1 ? 'grid-cols-2' : ''}`}>
+        {photos.map((src, n) => (
+          <a key={src} href={src} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-2xl bg-cream-100 ring-1 ring-cream-200" title="Open full size">
+            <img src={src} alt={`Client photo ${n + 1}`} loading="lazy" className="aspect-square size-full object-cover transition hover:scale-105" />
+          </a>
+        ))}
+      </div>
+      {details}
+    </div>
   )
 }
 
