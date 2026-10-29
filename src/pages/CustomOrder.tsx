@@ -8,7 +8,7 @@ const today = new Date().toISOString().split('T')[0]
 
 export default function CustomOrder() {
   const [form, setForm] = useState({
-    name: '', phone: '', occasion: occasions[0], size: sizes[1].label, date: today, theme: '', budget: '',
+    name: '', phone: '', occasion: occasions[0], size: sizes[1].label, date: today, theme: '', budget: '', photos: '',
   })
   const update = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -24,8 +24,7 @@ export default function CustomOrder() {
       `Date needed: ${form.date}`,
       form.budget && `Budget: KES ${form.budget}`,
       `Design idea: ${form.theme}`,
-      '',
-      '(I’ll attach reference photos in this chat)',
+      form.photos.trim() && `Reference pictures: ${form.photos.trim()}`,
     ]
       .filter(Boolean)
       .join('\n')
@@ -91,6 +90,16 @@ export default function CustomOrder() {
             placeholder="Describe your design: theme, colours, characters, flavours, message…"
             className="input resize-none"
           />
+          <label className="block text-xs font-medium text-cocoa-500">
+            Links to reference pictures (optional)
+            <input
+              value={form.photos}
+              onChange={update('photos')}
+              placeholder="Paste links from Pinterest, Instagram, Google…"
+              className="input mt-1"
+              inputMode="url"
+            />
+          </label>
           <button type="submit" className="btn w-full bg-[#25D366] text-white hover:bg-[#1fb857]">
             <WhatsAppIcon /> Send request on WhatsApp
           </button>
